@@ -5,7 +5,7 @@
 	<title>Kanban</title>
 	
 	<link rel="stylesheet" href="css/bootstrap/4.1.3/bootstrap.css" type="text/css">
-	
+
 	<style>
 		html,body {	height: 100%; }
 		.moveable {
@@ -19,9 +19,11 @@
 			-moz-user-select: none;
 			-ms-user-select: none;
 			user-select: none;
-			box-shadow: 5px 6px 3px 1px #888888;
+			padding: 2px;
+			box-shadow: 0 0 5px #888;
 			z-index:1;
 		}
+		.lines {min-height: 90%;}
 	</style>
 	
 </head>
@@ -30,7 +32,7 @@
 	<div class="container-fluid h-100">
 		<div class="row">
 			<div class="col-4 text-center">
-				<button type="button" class="btn btn-primary btn-lg btn-block" onclick="addPosit('pendientes')">Pendientes</button>
+				<button type="button" class="btn btn-primary btn-lg btn-block" data-toggle="modal" data-target="#modal">Pendientes</button>
 			</div>
 			<div class="col-4 text-center">
 				<button type="button" class="btn btn-primary btn-lg btn-block">Ejecución</button>
@@ -39,51 +41,134 @@
 				<button type="button" class="btn btn-primary btn-lg btn-block">Finalizado</button>
 			</div>
 		</div>
-		<div class="row justify-content-center h-100">
-			<div id="id_tab_pendientes" class="col-4 border-right border-primary h-100 d-inline-block pendientes" >
-				<span class="moveable" style="position: absolute;">
-					<span class="moveable__msg">Drag me</span>
-				</span>
+		<div class="row justify-content-center lines">
+			<div id="id_tab_pendientes" class="col-4 border-right border-primary d-inline-block pendientes" >
+
 			</div>
-			<div class="col-4 border-right border-left border-primary h-100 d-inline-block">
+			<div class="col-4 border-right border-left border-primary d-inline-block">
 				
 			</div>
-			<div class="col-4 border-left border-primary h-100 d-inline-block">
+			<div class="col-4 border-left border-primary d-inline-block">
 
 			</div>
 		</div>
 	</div>
 
+	
+
+	<div id="modal" class="modal" tabindex="-1" role="dialog">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Nuevo Posit</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<div id="err_posit" class="alert alert-danger" role="alert" style="display: none;">
+						Ups! - El Posit ya existe.
+					</div>
+					<p style="display:none;"></p>
+					<div class="input-group mb-3">
+						<input type="text" id="mod_title" class="form-control" placeholder="Título" aria-label="titulo" aria-describedby="basic-addon1">
+					</div>
+					<div class="input-group mb-3">
+						<input type="text" id="mod_desc" class="form-control" placeholder="Descripción" aria-label="descripcion" aria-describedby="basic-addon1">
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-primary" onclick="addPosit('pendientes')">Guardar</button>
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+				</div>
+			</div>
+		</div>
+	</div>
+	
 	<script src="js/jquery/3.2.1/jquery.js"></script>
 	<script src="js/bootstrap/4.1.3/bootstrap.js"></script>
 	<script src="js/displace/displace.js"></script>
 
 	<script>
-		var el = document.querySelector('.moveable');
-		const LINE_SPACING = 20;
+		var posits = [];
+		
+		const LINE_SPACING = 15;
 		const options = {
 			constrain: false,
 			customMove(el, x, y){
-				const left = Math.round(x / LINE_SPACING) * LINE_SPACING;
-				const top = Math.round(y / LINE_SPACING) * LINE_SPACING;
+				const left = Math.round( x / LINE_SPACING ) * LINE_SPACING;
+				const top = Math.round( y / LINE_SPACING ) * LINE_SPACING;
 				el.style.left = left + 'px';
 				el.style.top = top + 'px';
 			},
-			relativeTo: document.querySelector('.container-fluid')
+			relativeTo: document.querySelector( '.container-fluid' )
 		};
-		displacejs(el);
 
-		function addPosit(tab) {
-			var el_tab = null;
-			if ( tab == 'pendientes' ) {
-				el_tab = document.getElementById('id_tab_pendientes');
+		function addPosit( tab ) {
+			
+			var el_title = document.getElementById('mod_title');
+			var el_desc = document.getElementById('mod_desc');
+
+			var error = document.getElementById("err_posit");
+			
+			if ( posits.indexOf( el_title.value ) < 0 && el_title.value != "" ) {
+				var el_tab = null;
+				if ( tab == 'pendientes' ) {
+					el_tab = document.getElementById('id_tab_pendientes');
+				}
+
+				posit_values = {
+					"id": el_title.value,
+					"title": el_title.value,
+					"description": el_desc.value,
+					"className": "moveable",
+					"left": "0px",
+					"top":"0px"
+				};
+
+				var posit = document.createElement('span');
+				posit.id = posit_values.id;
+				posit.innerHTML = posit_values.title;
+				posit.className = posit_values.className;
+				posit.style.left = posit_values.left;
+				posit.style.top = posit_values.top;
+
+				el_tab.appendChild( posit );	
+				displacejs( posit, options );	
+
+				posits.push(el_title.value);
+
+				el_title.value = "";
+				el_desc.value = "";	
+				$('#modal').modal('hide');
+				
+				cleanError();
+			} else {
+				if( el_title.value == "" ) {
+					error.innerHTML = "Ups! - El titulo del posit no puede estar en blanco.";
+				}
+				if ( posits.indexOf( el_title.value ) > 0 ) {
+					error.innerHTML = "Ups! - El Posit ya existe.";
+				}
+				error.style.display = "block";
 			}
+		}
 
-			var posit = document.createElement('span');
-			posit.innerHTML = "hola mundo";
-			posit.className='moveable';
-			el_tab.appendChild(posit);	
-			displacejs(posit, options);		
+		function cleanError() {
+			var error = document.getElementById("err_posit");
+			error.style.display = "none";
+		}
+
+		function getPositionPosit( posit_id ) {
+			var posit = document.getElementById( posit_id );
+			var x = posit.style.left;
+			var y = posit.style.top;
+			var position = [x,y];
+			return position;
+		}
+
+		function savePosit( posit_obj ) {
+			
 		}
 	</script>
 </body>
