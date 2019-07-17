@@ -90,7 +90,7 @@
 	<script src="js/displace/displace.js"></script>
 
 	<script>
-		var posits = [];
+		var posits = {"records":[]};
 		
 		const LINE_SPACING = 15;
 		const options = {
@@ -104,6 +104,18 @@
 			relativeTo: document.querySelector( '.container-fluid' )
 		};
 
+		var observer = new MutationObserver(function(mutations) {  
+			mutations.forEach(function(mutation) {
+				//console.log(mutation.type);
+				refreshPositions()
+			});
+		});
+		var observer_config = {
+		  attributes: true,
+		  childList: false,
+		  characterData: false
+		};
+		
 		function addPosit( tab ) {
 			
 			var el_title = document.getElementById('mod_title');
@@ -111,32 +123,20 @@
 
 			var error = document.getElementById("err_posit");
 			
-			if ( posits.indexOf( el_title.value ) < 0 && el_title.value != "" ) {
-				var el_tab = null;
-				if ( tab == 'pendientes' ) {
-					el_tab = document.getElementById('id_tab_pendientes');
-				}
-
+			if ( !contain_posit( el_title.value ) && el_title.value != "" ) {
 				posit_values = {
 					"id": el_title.value,
 					"title": el_title.value,
 					"description": el_desc.value,
+					"tab": tab,
 					"className": "moveable",
 					"left": "0px",
 					"top":"0px"
 				};
 
-				var posit = document.createElement('span');
-				posit.id = posit_values.id;
-				posit.innerHTML = posit_values.title;
-				posit.className = posit_values.className;
-				posit.style.left = posit_values.left;
-				posit.style.top = posit_values.top;
+				createPosit( posit_values );	
 
-				el_tab.appendChild( posit );	
-				displacejs( posit, options );	
-
-				posits.push(el_title.value);
+				savePosit( posit_values );
 
 				el_title.value = "";
 				el_desc.value = "";	
@@ -147,18 +147,75 @@
 				if( el_title.value == "" ) {
 					error.innerHTML = "Ups! - El titulo del posit no puede estar en blanco.";
 				}
-				if ( posits.indexOf( el_title.value ) > 0 ) {
+				if ( contain_posit( el_title.value ) ) {
 					error.innerHTML = "Ups! - El Posit ya existe.";
 				}
 				error.style.display = "block";
 			}
 		}
 
+		function contain_posit( title ) {
+			for( var i=0; i < posits.records.length; i++ ) {
+				var posit = posits.records[i];
+				if ( posit.title == title ) {
+					return true;
+				}
+			}
+			return false;
+		}
+		
 		function cleanError() {
 			var error = document.getElementById("err_posit");
 			error.style.display = "none";
 		}
 
+		function createPosit(posit_values) {
+			var el_tab = null;
+			if ( posit_values.tab == 'pendientes' ) {
+				el_tab = document.getElementById('id_tab_pendientes');
+			} 
+			
+			if ( el_tab != null ) {			
+				var posit = document.createElement('span');
+				
+				posit.id = posit_values.id;
+				posit.innerHTML = posit_values.title;
+				posit.className = posit_values.className;
+				posit.style.left = posit_values.left;
+				posit.style.top = posit_values.top;
+				posit.ondblclick = function(){
+					for( var i=0; i < posits.records.length; i++ ) {
+						var posit = posits.records[i];
+						if (posit.id == this.id) {
+							document.getElementById( "mod_title" ).value = posit.title;
+							document.getElementById( "mod_desc" ).value = posit.description;
+							break;
+						}
+					}
+					$('#modal').modal('show');
+				};
+				
+				el_tab.appendChild( posit );
+				displacejs( posit, options );
+				
+				observer.observe(posit, observer_config);
+				
+				posits.records.push( posit_values );
+			} else {
+				console.log("No se encontró el tab");
+			}
+		}
+		
+		function refreshPositions() {
+			for( var i=0; i < posits.records.length; i++ ) {
+				var posit = posits.records[i];
+				var positions = getPositionPosit(posit.id);
+				posit.left = positions[0];
+				posit.top = positions[1];
+				savePosit( posit );
+			}
+		}
+		
 		function getPositionPosit( posit_id ) {
 			var posit = document.getElementById( posit_id );
 			var x = posit.style.left;
@@ -168,8 +225,25 @@
 		}
 
 		function savePosit( posit_obj ) {
-			
+			localStorage.setItem('posits', JSON.stringify( posits ));
 		}
+		
+		function loadPosit() {
+			var data = localStorage.getItem('posits');
+			if ( data != null ) {
+				data_parsed = JSON.parse(data);
+				
+				for( var i=0; i < data_parsed.records.length; i++ ) {
+					var posit = data_parsed.records[i];
+					createPosit( posit );
+					console.log("print " + JSON.stringify( posit ) );
+				}
+			}
+		}
+		
+		$( document ).ready( function() {
+			loadPosit();
+		});
 	</script>
 </body>
 </html>
