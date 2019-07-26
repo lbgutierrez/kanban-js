@@ -4,6 +4,7 @@
 	
 	<title>Kanban</title>
 	
+	<meta charset="utf-8" />
 	<link rel="stylesheet" href="css/bootstrap/4.1.3/bootstrap.css" type="text/css">
 
 	<style>
@@ -12,7 +13,6 @@
 			width: 130px;
 			height: 91px;
 			margin: 5px;
-			background-color: aqua;
 			position: absolute;
 			touch-action: none;
 			-webkit-user-select: none;
@@ -24,6 +24,20 @@
 			z-index:1;
 		}
 		.lines {min-height: 90%;}
+		
+		.color-posit .active {border: 2px solid #1900FF important;}
+		.color-posit #red {border: 1px solid #FFF; background:#FE5454; height: 18px; width: 10px;}
+		.color-posit #yellow {border: 1px solid #FFF; background:#FEFFB9; height: 18px; width: 10px;}
+		.color-posit #green {border: 1px solid #FFF; background:#B9FFC6; height: 18px; width: 10px;}
+		.color-posit #blue {border: 1px solid #FFF; background:#B9C8FF; height: 18px; width: 10px;}
+		.color-posit #violet {border: 1px solid #FFF; background:#EA8CFF; height: 18px; width: 10px;}
+		
+		.posit-red {background:#FE5454;}
+		.posit-yellow {background:#FEFFB9;}
+		.posit-green {background:#B9FFC6;}
+		.posit-blue {background:#B9C8FF;}
+		.posit-violet {background:#EA8CFF;}
+		
 	</style>
 	
 </head>
@@ -32,13 +46,13 @@
 	<div class="container-fluid h-100">
 		<div class="row">
 			<div class="col-4 text-center">
-				<button type="button" class="btn btn-primary btn-lg btn-block" data-toggle="modal" data-target="#modal">Pendientes</button>
+				<button type="button" class="btn btn-primary btn-lg btn-block" data-toggle="modal" data-target="#modal" onclick="openModal('nuevo')">Pendientes</button>
 			</div>
 			<div class="col-4 text-center">
-				<button type="button" class="btn btn-primary btn-lg btn-block">Ejecución</button>
+				<button type="button" class="btn btn-primary btn-lg btn-block" onclick="openModal('nuevo')">Ejecución</button>
 			</div>
 			<div class="col-4 text-center">
-				<button type="button" class="btn btn-primary btn-lg btn-block">Finalizado</button>
+				<button type="button" class="btn btn-primary btn-lg btn-block" onclick="openModal('nuevo')">Finalizado</button>
 			</div>
 		</div>
 		<div class="row justify-content-center lines">
@@ -60,7 +74,7 @@
 		<div class="modal-dialog" role="document">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title">Nuevo Posit</h5>
+					<h5 id="modal-title" class="modal-title">Nuevo Post-it</h5>
 					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
 						<span aria-hidden="true">&times;</span>
 					</button>
@@ -76,10 +90,19 @@
 					<div class="input-group mb-3">
 						<input type="text" id="mod_desc" class="form-control" placeholder="Descripción" aria-label="descripcion" aria-describedby="basic-addon1">
 					</div>
+					<div class="color-posit">
+						<input type="hidden" id="color" />
+						<button id="red" onclick="setColorPosit(this, 'red')"></button>
+						<button id="yellow" onclick="setColorPosit(this, 'yellow')"></button>
+						<button id="green" onclick="setColorPosit(this, 'green')"></button>
+						<button id="blue" onclick="setColorPosit(this, 'blue')"></button>
+						<button id="violet" onclick="setColorPosit(this, 'violet')"></button>
+					</div>
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-primary" onclick="addPosit('pendientes')">Guardar</button>
-					<button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+					<button type="button" id="btn_eliminar" class="btn btn-danger" data-dismiss="modal" onclick="deletePosit()">Eliminar</button>
+					<button type="button" id="btn_guardar" class="btn btn-primary" onclick="addPosit('pendientes')">Guardar</button>
+					<button type="button" id="btn_cancelar" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
 				</div>
 			</div>
 		</div>
@@ -128,7 +151,7 @@
 					"title": el_title.value,
 					"description": el_desc.value,
 					"tab": tab,
-					"className": "moveable",
+					"className": "moveable " + getColorPosit(),
 					"left": "0px",
 					"top":"0px"
 				};
@@ -182,17 +205,7 @@
 				posit.className = posit_values.className;
 				posit.style.left = posit_values.left;
 				posit.style.top = posit_values.top;
-				posit.ondblclick = function(){
-					for( var i=0; i < posits.records.length; i++ ) {
-						var posit = posits.records[i];
-						if (posit.id == this.id) {
-							document.getElementById( "mod_title" ).value = posit.title;
-							document.getElementById( "mod_desc" ).value = posit.description;
-							break;
-						}
-					}
-					$('#modal').modal('show');
-				};
+				posit.ondblclick = function() { openModal('modificar', this) };
 				
 				el_tab.appendChild( posit );
 				displacejs( posit, options );
@@ -223,6 +236,20 @@
 			return position;
 		}
 
+		function deletePosit( ) {
+			var posit_id = document.getElementById("mod_title").value;
+			for( var i=0; i < posits.records.length; i++ ) {
+				var posit = posits.records[i];
+				if (posit.id == posit_id) {
+					posits.records.splice(i,1);
+					var elPosit = document.getElementById( posit.id );
+					elPosit.parentElement.removeChild(elPosit);
+					break;
+				}
+			}
+			savePosit();
+		}
+		
 		function savePosit( posit_obj ) {
 			localStorage.setItem('posits', JSON.stringify( posits ));
 		}
@@ -237,6 +264,63 @@
 					createPosit( posit );
 					console.log("print " + JSON.stringify( posit ) );
 				}
+			}
+		}
+		
+		function setColorPosit( el, color ) {
+			document.getElementById("red").style.border = "";
+			document.getElementById("yellow").style.border = "";
+			document.getElementById("green").style.border = "";
+			document.getElementById("blue").style.border = "";
+			document.getElementById("violet").style.border = "";
+			
+			el.style.border = "2px solid #1900FF";
+			
+			elColor = document.getElementById("color");
+			elColor.value=color;
+		}
+		
+		function getColorPosit() {
+			elColor = document.getElementById("color");
+			color = elColor.value;
+			if ( color == "red") {
+				return "posit-red";
+			} else if ( color == "yellow" ) {
+				return "posit-yellow";
+			} else if ( color == "green" ) {
+				return "posit-green";
+			} else if ( color == "blue" ) {
+				return "posit-blue";
+			} else if ( color == "violet" ) {
+				return "posit-violet";
+			} else {
+				return "posit-yellow";
+			}
+		}
+		
+		function openModal( accion, el ) {
+			if (accion == 'nuevo') {
+			
+				document.getElementById('modal-title').innerHTML='Nuevo Post-it';
+				document.getElementById('mod_title').value='';
+				document.getElementById('mod_desc').value='';
+				document.getElementById('color').value='';
+				document.getElementById('btn_eliminar').style.visibility = 'hidden';
+				
+			} else if ( accion == 'modificar') {
+			
+				document.getElementById("modal-title").innerHTML="Modificar Post-it"
+				document.getElementById('btn_eliminar').style.visibility = 'visible';
+				for( var i=0; i < posits.records.length; i++ ) {
+					var posit = posits.records[i];
+					if (posit.id == el.id) {
+						document.getElementById( "mod_title" ).value = posit.title;
+						document.getElementById( "mod_desc" ).value = posit.description;
+						break;
+					}
+				}
+				$('#modal').modal('show');
+				
 			}
 		}
 		
